@@ -98,7 +98,7 @@ void greenfunction2(double x, double z, double k,  double* G00)
 			exp2[1]=sin(kn*fabs(z));
 			prodcomp(Exp, exp2, exp3 );
 			G00[0]+=exp3[1]/kn/2/L;
-			G00[1]+=exp3[0]/kn/2/L;
+			G00[1]+=exp3[0]/kn/2/L;//sign issue!!!
 		}
 		else{
 			kn=sqrt(-kz2);
@@ -145,26 +145,19 @@ void greenfunctionV(double x, double z, double k,  double* G00)
 		Exp[1]=sin(2*pi*n*x/L);
 		if (kz2>0){
 			kn=sqrt(kz2);			
-			exp2[0]=cos(kn*fabs(z));
-			exp2[1]=-sin(kn*fabs(z));
-			prodcomp(Exp, exp2, exp3 );
-			G00[0]+=exp3[1]/kn/2/L;
-			G00[1]+=exp3[0]/kn/2/L;
-		}
-		else{
-			kn=sqrt(-kz2);
-			exp2[0]=exp(-kn*fabs(z));
+			exp2[0]=sin(kn*fabs(z));
 			exp2[1]=0;
 			prodcomp(Exp, exp2, exp3 );
-			G00[0]-=exp3[0]/kn/2/L;
-			G00[1]-=exp3[1]/kn/2/L;
+			G00[0]+=exp3[0]/kn/L;
+			G00[1]+=exp3[1]/kn/L;
 		}
+		
 		
 	}
 	
 }
 void greenfunctiontable(FILE *filefprintf, int nx2, int nz2, double dx, double dz, int nw, double* fren, double c0,double* G0r,double* G0i,
-double* VG0r)
+double* VG0r,double* VG0i)
 {
 	int ix,iz,iw;
 	double omega, k;
@@ -184,17 +177,19 @@ double* VG0r)
 			x=(ix-(nx2-1)/2)*dx;
 			for (iz=0;iz<nz2;iz++){
 				z=(iz-(nz2-1)/2)*dz;
-				greenfunction2(x, z, k, G00);
-				//greenfunction3(x, z, k, G00);
+				//greenfunction2(x, z, k, G00);
+				greenfunction3(x, z, k, G00);
 				G0r[iw*(nx2*nz2)+ix*nz2+iz]=G00[0];
 				G0i[iw*(nx2*nz2)+ix*nz2+iz]=G00[1];
 				if(z>0){
 					greenfunctionV(x, z, k, G00);
-					VG0r[iw*(nx2*nz2)+ix*nz2+iz]=G0r[iw*(nx2*nz2)+ix*nz2+iz]-G00[0];
+					//VG0r[iw*(nx2*nz2)+ix*nz2+iz]=G0r[iw*(nx2*nz2)+ix*nz2+iz]-G00[0];
 					//VG0r[iw*(nx2*nz2)+ix*nz2+iz]=G0i[iw*(nx2*nz2)+ix*nz2+iz]-G00[1];
-					//VG0r[iw*(nx2*nz2)+ix*nz2+iz]=2*G00[0];
+					VG0r[iw*(nx2*nz2)+ix*nz2+iz]=G00[0];
+					VG0i[iw*(nx2*nz2)+ix*nz2+iz]=G00[1];
 				}else{
 					VG0r[iw*(nx2*nz2)+ix*nz2+iz]=0;
+					VG0i[iw*(nx2*nz2)+ix*nz2+iz]=0;
 				}
 			}
 		}
@@ -207,7 +202,7 @@ double* VG0r)
 			x=(ix-(nx2-1)/2)*dx;
 			for (iz=0;iz<nz2;iz++){
 				z=(iz-(nz2-1)/2)*dz;		
-                          	fprintf(file2," %f %f %.12lf %.12lf %.12lf\n", x, z, G0r[iw*(nx2*nz2)+ix*nz2+iz],G0i[iw*(nx2*nz2)+ix*nz2+iz],VG0r[iw*(nx2*nz2)+ix*nz2+iz]);
+                          	fprintf(file2," %f %f %.12lf %.12lf %.12lf  %.12lf\n", x, z, G0r[iw*(nx2*nz2)+ix*nz2+iz],G0i[iw*(nx2*nz2)+ix*nz2+iz],VG0r[iw*(nx2*nz2)+ix*nz2+iz],VG0i[iw*(nx2*nz2)+ix*nz2+iz]);
 			}
                           fprintf(file2," \n");
 		}
@@ -219,10 +214,10 @@ double* VG0r)
 }
 
 
-void P1num(FILE *filefprintf, int nw, int nx, int nz,double dx,double dz,double c0, int *ps, double *sourcefren,double* fren, double *VG0r, double* vpe, double *P0r,double *P0i, double *P1r,double *P1i){
+void P1num(FILE *filefprintf, int nw, int nx, int nz,double dx,double dz,double c0, int *ps, double *sourcefren,double* fren, double *VG0r, double *VG0i, double* vpe, double *P0r,double *P0i, double *P1r,double *P1i){
 	int iw,ix,iz,ix2,iz2;
         int xindex,zindex;
-   	double VG0,Prtemp,Pitemp;
+   	double VG0[2],Prtemp,Pitemp;
 	double omega,k;
   	double x,z;
  	int nz2    = 2*nz+1; 
@@ -248,9 +243,10 @@ void P1num(FILE *filefprintf, int nw, int nx, int nz,double dx,double dz,double 
 					zindex=iz-iz2+nz;
 					for(ix2=0;ix2<nx;ix2++){
 						xindex=ix-ix2+nx;
-						VG0=VG0r[iw*(nx2*nz2)+xindex*nz2+zindex];
-						Prtemp+=VG0*vpe[ix2*nz+iz2]*P1r[iw*(nx*nz)+ix2*nz+iz2];
-						Pitemp+=VG0*vpe[ix2*nz+iz2]*P1i[iw*(nx*nz)+ix2*nz+iz2];
+						VG0[0]=VG0r[iw*(nx2*nz2)+xindex*nz2+zindex];
+						VG0[1]=VG0i[iw*(nx2*nz2)+xindex*nz2+zindex];
+						Prtemp+=vpe[ix2*nz+iz2]*(VG0[0]*P1r[iw*(nx*nz)+ix2*nz+iz2]-VG0[1]*P1i[iw*(nx*nz)+ix2*nz+iz2]);
+						Pitemp+=vpe[ix2*nz+iz2]*(VG0[0]*P1i[iw*(nx*nz)+ix2*nz+iz2]+VG0[1]*P1r[iw*(nx*nz)+ix2*nz+iz2]);
 					}
 				}
 				Prtemp*=dx*dz*k*k;

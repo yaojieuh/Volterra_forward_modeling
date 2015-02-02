@@ -78,7 +78,7 @@ int main( int argc, char *argv[] )
    double* VG0r = malloc(nz2*nx2*nw*sizeof(double) );
    greenfunctiontable(file1,nx2, nz2, dx,dz, nw,  fren, c0,G0r, G0i,VG0r);
 
-
+   /*
    double* P0r = malloc(nz*nx*nw*sizeof(double) );
    double* P0i = malloc(nz*nx*nw*sizeof(double) );
    P0num(file1,  nw, nx, nz, dx,dz,sourcefren, ps,  G0r,G0i, P0r,P0i);
@@ -96,7 +96,6 @@ int main( int argc, char *argv[] )
    // Pwtot(nw,nx,  nz,  dw, dx, dz, dt, nt,   fren,P0r, P0i, Pret);
  
 
-/*
    double* precor = malloc(2*nx*sizeof(double));
    int* prec = malloc(2*nx*sizeof(int));
    
